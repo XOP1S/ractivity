@@ -46,14 +46,14 @@ class(novel.v)
 oraciones <- tokenize_sentences(novel.v)
 oraciones
 
-#Palabras mas usadas con longitud mayor a 3--------------------------------------------------------------
+#Palabras mas usadas con longitud mayor a 4--------------------------------------------------------------
 palabras <- tokenize_words(novel.v)
 palabras
 
 tabla <- table(palabras[[1]])
 tabla <- data_frame(word = names(tabla), count = as.numeric(tabla))
 tabla_filtrada <- tabla %>%
-  filter(nchar(word) > 3)
+  filter(nchar(word) > 4)
 tabla <- arrange(tabla_filtrada, desc(count))
 tabla
 

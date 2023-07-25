@@ -2,6 +2,9 @@ library(tokenizers)
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
+library(viridis)
+
+
 #Mirar cual es el folder de trabajo actual y asegurarse que en el est? el documento de la obra
 getwd()
 
@@ -34,19 +37,16 @@ metadata.v
 # Ahora, las lineas de la novela son las que se encuentra entre la l?nea de inicio (start.v) y la de fin de la obra (end.v)
 # Colocaremos est?s l?neas en la variable (novel.lines.v)
 novel.lines.v <-  text.v[start.v:end.v]
-novel.lines.v
 
 class(novel.lines.v)
 
 # La variable novel.lines.v almacena en l?neas la novela, con la funci?n paste se uniran todas las l?neas de la novela, separandolas con un espacio " "
 novel.v <- paste(novel.lines.v, collapse=" ")
-novel.v
 
 class(novel.v)
 
 # La funcion tolower transforma el texto en min?scula
 novel.lower.v <- tolower(novel.v)
-novel.lower.v
 
 #Frecuencia de aparicion de los personajes principales----------------------------------------------------
 indices_tomos <- c(gregexpr("--[0-9]+--", novel.lower.v)[[1]], nchar(novel.lower.v) + 1)
@@ -64,30 +64,40 @@ for (i in 1:length(tomos)) {
   cat(tomos[[i]], "\n\n")
 }
 
-lista_personajes <- c("ozores", "fermín", "magistral","Álvaro","Víctor")
+lista_personajes <- c("ozores", "fermín", "magistral","álvaro","víctor","regenta")
 
-frecuencia_personajes <- sapply(lista_personajes, function(personaje) {
-  count <- length(grep(personaje, tomos, ignore.case = TRUE))
-  return(count)
+# Crear una lista para almacenar las frecuencias de menciones de cada personaje en cada tomo
+frecuencia_por_capitulo <- lapply(tomos, function(tomo) {
+  sapply(lista_personajes, function(personaje) {
+    count <- length(grep(personaje, tomo, ignore.case = TRUE))
+    return(count)
+  })
 })
 
-# Crear un data frame con los resultados
-tabla_frecuencia <- data.frame(Personaje = lista_personajes, Frecuencia = frecuencia_personajes)
+# Convertir la lista en un data frame con los resultados
+tabla_frecuencia_por_capitulo <- data.frame(do.call(rbind, frecuencia_por_capitulo))
+colnames(tabla_frecuencia_por_capitulo) <- lista_personajes
 
-# Mostrar la tabla de frecuencia
-tabla_frecuencia
+# Mostrar la tabla de frecuencia por capítulo
+print(tabla_frecuencia_por_capitulo)
 
-# Ordenar la tabla de frecuencia de forma descendente para mostrar los personajes más frecuentes primero
-tabla_frecuencia <- tabla_frecuencia[order(-tabla_frecuencia$Frecuencia), ]
+# Agregar la columna de números de capítulo al data frame original
+tabla_frecuencia_por_capitulo$Capitulo <- seq_along(frecuencia_por_capitulo)
 
-# Crear el gráfico de barras
-grafico_barras <- ggplot(tabla_frecuencia, aes(x = reorder(Personaje, Frecuencia), y = Frecuencia)) +
-  geom_bar(stat = "identity", fill = "dodgerblue", color = "black") +
-  labs(title = "Frecuencia de Apariciones de Personajes en La Regenta",
-       x = "Personaje",
-       y = "Frecuencia") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Convertir el data frame a formato largo (long format) para el gráfico
+tabla_frecuencia_por_capitulo_long <- tidyr::gather(tabla_frecuencia_por_capitulo, Personaje, Frecuencia, -Capitulo)
 
-# Mostrar el gráfico de barras
-grafico_barras
+# Cargar la librería ggplot2 si aún no lo has hecho
+
+library(ggplot2)
+
+# Crear el gráfico de puntos con líneas de tendencia
+ggplot(data = tabla_frecuencia_por_capitulo_long, aes(x = Capitulo, y = Frecuencia, color = Personaje)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Frecuencia de menciones de personajes principales en La Regenta",
+       x = "Capítulo",
+       y = "Frecuencia de menciones",
+       color = "Personaje") +
+  theme_minimal()
 
